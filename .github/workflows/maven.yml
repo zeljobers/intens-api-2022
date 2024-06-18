@@ -1,0 +1,64 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "master" ]
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 8
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+    - name: Make dockerfile
+      run: echo "FROM openjdk:8-jdk-alpine 
+                ARG JAR_FILE=target/*.jar 
+                COPY ${JAR_FILE} app.jar 
+                ENV PORT=${{ vars.PORT }}
+                EXPOSE ${{ vars.PORT }} 
+                ENTRYPOINT ["java","-jar","/app.jar"]" > Dockerfile
+    - name: Build an docker image
+      run:  docker build -t zeljobers/intensapi:latest -f Dockerfile .
+    - name: Push an docker image to dockerhub
+      run: |
+        docker login -u zeljobers -p ${{secrets.DOCKER_PWD}}
+        docker push zeljobers/intensapi
+# nemam na ngrok-u vise sesija za tunneling da bih se prikacio na ssh
+# prikacio bih se sa ssh-keygen generisanim kljucevima,
+# pa bih
+# docker pull zeljobers/intensapi
+# k3d cluster create test -p "8080:8080@loadbalancer"
+# kubectl get pods -A
+# kubectl describe pods -A
+# docker ps
+# kubectl config view
+# kubectl config current-context
+# k3d cluster delete
+# k3d cluster list
+# k3d cluster delete test
+# k3d cluster create test -p "8080:8080@loadbalancer"
+# kubectl get pods -A
+# kubectl describe pods -A
+# kubectl create deploy intensapi --image=zeljobers/intensapi
+# kubectl expose deploy intensapi --type=LoadBalancer --port=8080 --target-port=8080
+# kubectl get deploy -A
+# kubectl get svc -A
+# kubectl get pods -A
+
+      
